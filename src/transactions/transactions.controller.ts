@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query 
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller('transactions')
 export class TransactionsController {
@@ -13,17 +14,22 @@ export class TransactionsController {
   }
 
   @Get()
-  findAll(@Query('userId') userId?: string, @Query('accountId') accountId?: string, @Query('categoryId') categoryId?: string) {
+  findAll(
+    @Query('userId') userId?: string,
+    @Query('accountId') accountId?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query() paginationDto?: PaginationDto,
+  ) {
     if (userId) {
-      return this.transactionsService.findByUserId(parseInt(userId));
+      return this.transactionsService.findByUserId(parseInt(userId), paginationDto);
     }
     if (accountId) {
-      return this.transactionsService.findByAccountId(parseInt(accountId));
+      return this.transactionsService.findByAccountId(parseInt(accountId), paginationDto);
     }
     if (categoryId) {
-      return this.transactionsService.findByCategoryId(parseInt(categoryId));
+      return this.transactionsService.findByCategoryId(parseInt(categoryId), paginationDto);
     }
-    return this.transactionsService.findAll();
+    return this.transactionsService.findAll(paginationDto);
   }
 
   @Get(':id')

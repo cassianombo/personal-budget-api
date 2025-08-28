@@ -4,3 +4,4 @@ export * from './transactions.controller';
 export * from './transactions.module';
 export * from './dto/create-transaction.dto';
 export * from './dto/update-transaction.dto';
+export * from './dto/pagination.dto';

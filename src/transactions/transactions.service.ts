@@ -5,6 +5,7 @@ import { Transaction, TransactionType } from './transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AccountsService } from '../accounts/accounts.service';
+import { PaginationDto, PaginatedResult } from './dto/pagination.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -83,35 +84,87 @@ export class TransactionsService {
     await queryRunner.manager.save(account);
   }
 
-  async findAll(): Promise<Transaction[]> {
-    return this.transactionsRepository.find({
+  async findAll(paginationDto?: PaginationDto): Promise<PaginatedResult<Transaction>> {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.transactionsRepository.findAndCount({
       relations: ['user', 'category'],
       order: { date: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findByUserId(userId: number): Promise<Transaction[]> {
-    return this.transactionsRepository.find({
+  async findByUserId(userId: number, paginationDto?: PaginationDto): Promise<PaginatedResult<Transaction>> {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.transactionsRepository.findAndCount({
       where: { userId },
       relations: ['user', 'category'],
       order: { date: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findByAccountId(accountId: number): Promise<Transaction[]> {
-    return this.transactionsRepository.find({
+  async findByAccountId(accountId: number, paginationDto?: PaginationDto): Promise<PaginatedResult<Transaction>> {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.transactionsRepository.findAndCount({
       where: { accountId },
       relations: ['user', 'category'],
       order: { date: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findByCategoryId(categoryId: number): Promise<Transaction[]> {
-    return this.transactionsRepository.find({
+  async findByCategoryId(categoryId: number, paginationDto?: PaginationDto): Promise<PaginatedResult<Transaction>> {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.transactionsRepository.findAndCount({
       where: { categoryId },
       relations: ['user', 'category'],
       order: { date: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number): Promise<Transaction> {
