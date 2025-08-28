@@ -1,6 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-
-import { User } from '../users/user.entity';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 export enum CategoryType {
   INCOME = 'income',
@@ -25,16 +23,9 @@ export class Category {
   @Column()
   background: string;
 
-  @Column({ nullable: false })
-  userId: number;
-
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
-  user: User;
 }

@@ -25,9 +25,6 @@ export class User {
   @OneToMany(() => Account, account => account.user)
   accounts: Account[];
 
-  @OneToMany(() => Category, category => category.user)
-  categories: Category[];
-
   @OneToMany(() => Transaction, transaction => transaction.user)
   transactions: Transaction[];
 }
