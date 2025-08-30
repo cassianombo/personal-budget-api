@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { Account } from '../accounts/account.entity';
+import { Transaction } from '../transactions/transaction.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -10,15 +12,27 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Account)
+    private accountsRepository: Repository<Account>,
+    @InjectRepository(Transaction)
+    private transactionsRepository: Repository<Transaction>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.usersRepository.findOne({
+    const existingUsername = await this.usersRepository.findOne({
       where: { username: createUserDto.username },
     });
 
-    if (existingUser) {
+    if (existingUsername) {
       throw new ConflictException('Username already exists');
+    }
+
+    const existingEmail = await this.usersRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+
+    if (existingEmail) {
+      throw new ConflictException('Email already exists');
     }
 
     const user = this.usersRepository.create(createUserDto);
@@ -29,10 +43,10 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: number) {
     const user = await this.usersRepository.findOne({
       where: { id },
-      relations: ['accounts', 'categories', 'transactions'],
+      select: ['id', 'name', 'username', 'email'],
     });
 
     if (!user) {
@@ -40,7 +54,7 @@ export class UsersService {
     }
 
     return user;
-  }
+  } 
 
   async findByUsername(username: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -49,6 +63,22 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException(`User with username ${username} not found`);
+    }
+
+    return user;
+  }
+
+  async findByEmail(email: string): Promise<User> {
+    if (!email) {
+      throw new NotFoundException(`Email is required`);
+    }
+
+    const user = await this.usersRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
     }
 
     return user;
@@ -67,12 +97,44 @@ export class UsersService {
       }
     }
 
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingEmail = await this.usersRepository.findOne({
+        where: { email: updateUserDto.email },
+      });
+
+      if (existingEmail) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
     Object.assign(user, updateUserDto);
     return this.usersRepository.save(user);
   }
 
   async remove(id: number): Promise<void> {
-    const user = await this.findOne(id);
-    await this.usersRepository.remove(user);
+    const user = await this.usersRepository.findOne({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    try {
+      // Use a transaction to ensure atomicity
+      await this.usersRepository.manager.transaction(async (transactionalEntityManager) => {
+        // First, delete all transactions related to this user
+        await transactionalEntityManager.delete('transactions', { userId: id });
+
+        // Then, delete all accounts related to this user
+        await transactionalEntityManager.delete('accounts', { userId: id });
+
+        // Finally, delete the user
+        await transactionalEntityManager.delete('users', { id });
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw new Error(`Failed to delete user with ID ${id}: ${error.message}`);
+    }
   }
 }

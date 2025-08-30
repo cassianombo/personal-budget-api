@@ -10,7 +10,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   password: configService.get<string>('DB_PASSWORD'),
   database: configService.get<string>('DB_NAME'),
   entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
-  synchronize: configService.get<string>('NODE_ENV') === 'development',
+  synchronize: true, // Re-enabled after fixing schema issue
   logging: configService.get<string>('NODE_ENV') === 'development',
   ssl: configService.get<string>('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
 });

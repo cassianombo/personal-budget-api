@@ -52,7 +52,7 @@ export class Transaction {
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 }

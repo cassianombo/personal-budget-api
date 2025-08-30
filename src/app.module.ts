@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { getDatabaseConfig } from './config/database.config';
 import { getEnvConfig } from './config/env.config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { getEnvConfig } from './config/env.config';
     AccountsModule,
     CategoriesModule,
     TransactionsModule,
+    AuthModule,
   ],
   
   controllers: [AppController],
