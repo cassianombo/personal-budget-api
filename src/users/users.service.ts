@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from './user.entity';
-import { Account } from '../accounts/account.entity';
-import { Transaction } from '../transactions/transaction.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "./user.entity";
+import { Account } from "../accounts/account.entity";
+import { Transaction } from "../transactions/transaction.entity";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
 
 @Injectable()
 export class UsersService {
@@ -15,8 +19,18 @@ export class UsersService {
     @InjectRepository(Account)
     private accountsRepository: Repository<Account>,
     @InjectRepository(Transaction)
-    private transactionsRepository: Repository<Transaction>,
+    private transactionsRepository: Repository<Transaction>
   ) {}
+
+  async updateHashedRefreshToken(
+    userId: number,
+    hashedRefreshToken: string | null
+  ) {
+    await this.usersRepository.update(
+      { id: userId },
+      { hashedRefreshToken: hashedRefreshToken ?? undefined }
+    );
+  }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUsername = await this.usersRepository.findOne({
@@ -24,7 +38,7 @@ export class UsersService {
     });
 
     if (existingUsername) {
-      throw new ConflictException('Username already exists');
+      throw new ConflictException("Username already exists");
     }
 
     const existingEmail = await this.usersRepository.findOne({
@@ -32,7 +46,7 @@ export class UsersService {
     });
 
     if (existingEmail) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException("Email already exists");
     }
 
     const user = this.usersRepository.create(createUserDto);
@@ -46,7 +60,7 @@ export class UsersService {
   async findOne(id: number) {
     const user = await this.usersRepository.findOne({
       where: { id },
-      select: ['id', 'name', 'username', 'email'],
+      select: ["id", "name", "username", "email", "hashedRefreshToken", "role"],
     });
 
     if (!user) {
@@ -54,7 +68,7 @@ export class UsersService {
     }
 
     return user;
-  } 
+  }
 
   async findByUsername(username: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -93,7 +107,7 @@ export class UsersService {
       });
 
       if (existingUser) {
-        throw new ConflictException('Username already exists');
+        throw new ConflictException("Username already exists");
       }
     }
 
@@ -103,7 +117,7 @@ export class UsersService {
       });
 
       if (existingEmail) {
-        throw new ConflictException('Email already exists');
+        throw new ConflictException("Email already exists");
       }
     }
 
@@ -122,18 +136,22 @@ export class UsersService {
 
     try {
       // Use a transaction to ensure atomicity
-      await this.usersRepository.manager.transaction(async (transactionalEntityManager) => {
-        // First, delete all transactions related to this user
-        await transactionalEntityManager.delete('transactions', { userId: id });
+      await this.usersRepository.manager.transaction(
+        async (transactionalEntityManager) => {
+          // First, delete all transactions related to this user
+          await transactionalEntityManager.delete("transactions", {
+            userId: id,
+          });
 
-        // Then, delete all accounts related to this user
-        await transactionalEntityManager.delete('accounts', { userId: id });
+          // Then, delete all accounts related to this user
+          await transactionalEntityManager.delete("accounts", { userId: id });
 
-        // Finally, delete the user
-        await transactionalEntityManager.delete('users', { id });
-      });
+          // Finally, delete the user
+          await transactionalEntityManager.delete("users", { id });
+        }
+      );
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error("Error deleting user:", error);
       throw new Error(`Failed to delete user with ID ${id}: ${error.message}`);
     }
   }
