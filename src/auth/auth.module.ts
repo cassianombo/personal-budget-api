@@ -5,16 +5,19 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { Module } from '@nestjs/common';
+import { RefreshJwtStrategy } from './strategies/refresh.strategy';
 import { UsersModule } from 'src/users/users.module';
 import jwtConfig from './config/jwt.config';
+import refreshJwtConfig from './config/refresh-jwt.config';
 
 @Module({
   imports: [
     UsersModule,
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
+    ConfigModule.forFeature(refreshJwtConfig),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, RefreshJwtStrategy],
 })
 export class AuthModule {}
