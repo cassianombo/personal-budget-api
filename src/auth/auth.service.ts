@@ -1,14 +1,15 @@
-import * as bcrypt from "bcrypt";
+import * as bcrypt from 'bcrypt';
 
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 
-import { AuthJwtPayload } from "./types/auth-jwtPayload";
-import { JwtService } from "@nestjs/jwt";
-import { UsersService } from "../users/users.service";
-import refreshJwtConfig from "./config/refresh-jwt.config";
-import type { ConfigType } from "@nestjs/config";
-import * as argon2 from "argon2";
-import { CurrentUser } from "./types/current-user";
+import { AuthJwtPayload } from './types/auth-jwtPayload';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import refreshJwtConfig from './config/refresh-jwt.config';
+import type { ConfigType } from '@nestjs/config';
+import * as argon2 from 'argon2';
+import { CurrentUser } from './types/current-user';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +17,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     @Inject(refreshJwtConfig.KEY)
-    private refreshJwtConfiguration: ConfigType<typeof refreshJwtConfig>
+    private refreshJwtConfiguration: ConfigType<typeof refreshJwtConfig>,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -26,21 +27,20 @@ export class AuthService {
         return { id: user.id };
       }
     } catch (error) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException('Invalid credentials');
     }
-    throw new UnauthorizedException("Invalid credentials");
+    throw new UnauthorizedException('Invalid credentials');
   }
 
   async login(userId: number) {
-    const { accessToken, refreshToken } = await this.generateRefreshToken(
-      userId
-    );
+    const { accessToken, refreshToken } =
+      await this.generateRefreshToken(userId);
 
     const hashedRefreshToken = await argon2.hash(refreshToken);
 
     await this.usersService.updateHashedRefreshToken(
       userId,
-      hashedRefreshToken
+      hashedRefreshToken,
     );
 
     return {
@@ -51,7 +51,7 @@ export class AuthService {
   }
 
   async generateRefreshToken(
-    userId: number
+    userId: number,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload: AuthJwtPayload = { sub: userId };
     const [accessToken, refreshToken] = await Promise.all([
@@ -65,15 +65,14 @@ export class AuthService {
   }
 
   async refreshToken(userId: number) {
-    const { accessToken, refreshToken } = await this.generateRefreshToken(
-      userId
-    );
+    const { accessToken, refreshToken } =
+      await this.generateRefreshToken(userId);
 
     const hashedRefreshToken = await argon2.hash(refreshToken);
 
     await this.usersService.updateHashedRefreshToken(
       userId,
-      hashedRefreshToken
+      hashedRefreshToken,
     );
 
     return {
@@ -86,15 +85,15 @@ export class AuthService {
   async validateRefreshToken(userId: number, refreshToken: string) {
     const user = await this.usersService.findOne(userId);
     if (!user || !user.hashedRefreshToken)
-      throw new UnauthorizedException("User not found");
+      throw new UnauthorizedException('User not found');
 
     const isRefreshTokenValid = await argon2.verify(
       user.hashedRefreshToken,
-      refreshToken
+      refreshToken,
     );
 
     if (!isRefreshTokenValid)
-      throw new UnauthorizedException("Invalid refresh token");
+      throw new UnauthorizedException('Invalid refresh token');
 
     return { id: userId };
   }
@@ -105,12 +104,19 @@ export class AuthService {
 
   async validateJwtUser(userId: number) {
     const user = await this.usersService.findOne(userId);
-    if (!user) throw new UnauthorizedException("User not found");
+    if (!user) throw new UnauthorizedException('User not found');
 
     const currentUser: CurrentUser = {
       id: user.id,
       role: user.role,
     };
     return currentUser;
+  }
+
+  async validateGoogleUser(googleUser: CreateUserDto) {
+    const user = await this.usersService.findByEmail(googleUser.email);
+    if (user) return user;
+
+    return this.usersService.create(googleUser);
   }
 }
