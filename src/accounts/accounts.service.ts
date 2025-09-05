@@ -7,6 +7,17 @@ import { UpdateAccountDto } from './dto/update-account.dto';
 
 @Injectable()
 export class AccountsService {
+  private readonly ACCOUNT_SELECT_FIELDS = [
+    'id',
+    'name',
+    'balance',
+    'icon',
+    'background',
+    'type',
+    'createdAt',
+    'updatedAt',
+  ] as (keyof Account)[];
+
   constructor(
     @InjectRepository(Account)
     private accountsRepository: Repository<Account>,
@@ -14,26 +25,27 @@ export class AccountsService {
 
   async create(createAccountDto: CreateAccountDto): Promise<Account> {
     const account = this.accountsRepository.create(createAccountDto);
-    return this.accountsRepository.save(account);
+    const savedAccount = await this.accountsRepository.save(account);
+    return this.findOne(savedAccount.id);
   }
 
   async findAll(): Promise<Account[]> {
     return this.accountsRepository.find({
-      relations: ['user'],
+      select: this.ACCOUNT_SELECT_FIELDS,
     });
   }
 
   async findByUserId(userId: number): Promise<Account[]> {
     return this.accountsRepository.find({
       where: { userId },
-      relations: ['user'],
+      select: this.ACCOUNT_SELECT_FIELDS,
     });
   }
 
   async findOne(id: number): Promise<Account> {
     const account = await this.accountsRepository.findOne({
       where: { id },
-      relations: ['user'],
+      select: this.ACCOUNT_SELECT_FIELDS,
     });
 
     if (!account) {
@@ -43,10 +55,82 @@ export class AccountsService {
     return account;
   }
 
-  async update(id: number, updateAccountDto: UpdateAccountDto): Promise<Account> {
-    const account = await this.findOne(id);
+  async findOneByUserId(id: number, userId: number): Promise<Account> {
+    const account = await this.accountsRepository.findOne({
+      where: { id, userId },
+      select: this.ACCOUNT_SELECT_FIELDS,
+    });
+
+    if (!account) {
+      throw new NotFoundException(
+        `Account with ID ${id} not found or does not belong to user`,
+      );
+    }
+
+    return account;
+  }
+
+  async update(
+    id: number,
+    updateAccountDto: UpdateAccountDto,
+  ): Promise<Account> {
+    const account = await this.accountsRepository.findOne({
+      where: { id },
+      select: this.ACCOUNT_SELECT_FIELDS,
+    });
+
+    if (!account) {
+      throw new NotFoundException(`Account with ID ${id} not found`);
+    }
+
     Object.assign(account, updateAccountDto);
-    return this.accountsRepository.save(account);
+    await this.accountsRepository.save(account);
+
+    const updatedAccount = await this.accountsRepository.findOne({
+      where: { id },
+      select: this.ACCOUNT_SELECT_FIELDS,
+    });
+
+    if (!updatedAccount) {
+      throw new NotFoundException(
+        `Account with ID ${id} not found after update`,
+      );
+    }
+
+    return updatedAccount;
+  }
+
+  async updateByUserId(
+    id: number,
+    updateAccountDto: UpdateAccountDto,
+    userId: number,
+  ): Promise<Account> {
+    const account = await this.accountsRepository.findOne({
+      where: { id, userId },
+      select: this.ACCOUNT_SELECT_FIELDS,
+    });
+
+    if (!account) {
+      throw new NotFoundException(
+        `Account with ID ${id} not found or does not belong to user`,
+      );
+    }
+
+    Object.assign(account, updateAccountDto);
+    await this.accountsRepository.save(account);
+
+    const updatedAccount = await this.accountsRepository.findOne({
+      where: { id, userId },
+      select: this.ACCOUNT_SELECT_FIELDS,
+    });
+
+    if (!updatedAccount) {
+      throw new NotFoundException(
+        `Account with ID ${id} not found after update or does not belong to user`,
+      );
+    }
+
+    return updatedAccount;
   }
 
   async remove(id: number): Promise<void> {
@@ -54,9 +138,15 @@ export class AccountsService {
     await this.accountsRepository.remove(account);
   }
 
+  async removeByUserId(id: number, userId: number): Promise<void> {
+    const account = await this.findOneByUserId(id, userId);
+    await this.accountsRepository.remove(account);
+  }
+
   async updateBalance(id: number, amount: number): Promise<Account> {
     const account = await this.findOne(id);
     account.balance += amount;
-    return this.accountsRepository.save(account);
+    await this.accountsRepository.save(account);
+    return this.findOne(id);
   }
 }

@@ -7,13 +7,13 @@ import { Strategy } from 'passport-local';
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly authService: AuthService) {
-    super({ usernameField: 'email' });
+    super({ usernameField: 'username' });
   }
 
-  async validate(email: string, password: string) {
+  async validate(username: string, password: string) {
     if (password === '') {
       throw new UnauthorizedException('Please provide a password');
     }
-    return this.authService.validateUser(email, password);
+    return this.authService.validateUser(username, password);
   }
 }

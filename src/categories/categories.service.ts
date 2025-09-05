@@ -1,71 +1,36 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Category } from './category.entity';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
+import { Category, CategoryType } from './category.entity';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { CATEGORIES } from './categories.constants';
+import { CategoryResponseDto } from './dto/category-response.dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    @InjectRepository(Category)
-    private categoriesRepository: Repository<Category>,
-  ) {}
-
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const existingCategory = await this.categoriesRepository.findOne({
-      where: { name: createCategoryDto.name },
-    });
-
-    if (existingCategory) {
-      throw new ConflictException('Category with this name already exists');
-    }
-
-    const category = this.categoriesRepository.create(createCategoryDto);
-    return this.categoriesRepository.save(category);
+  private mapToResponseDto(category: Category): CategoryResponseDto {
+    return {
+      id: category.id,
+      name: category.name,
+      type: category.type,
+      icon: category.icon,
+      background: category.background,
+    };
   }
 
-  async findAll(): Promise<Category[]> {
-    return this.categoriesRepository.find();
+  findAll(): CategoryResponseDto[] {
+    return CATEGORIES.map((category) => this.mapToResponseDto(category));
   }
 
-  async findByType(type: string): Promise<Category[]> {
-    return this.categoriesRepository.find({
-      where: { type: type as any },
-    });
+  findByType(type: CategoryType): CategoryResponseDto[] {
+    return CATEGORIES.filter((category) => category.type === type).map(
+      (category) => this.mapToResponseDto(category),
+    );
   }
 
-  async findOne(id: number): Promise<Category> {
-    const category = await this.categoriesRepository.findOne({
-      where: { id },
-    });
-
+  findOne(id: number): CategoryResponseDto {
+    const category = CATEGORIES.find((cat) => cat.id === id);
     if (!category) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
-
-    return category;
-  }
-
-  async update(id: number, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
-    const category = await this.findOne(id);
-
-    if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
-      const existingCategory = await this.categoriesRepository.findOne({
-        where: { name: updateCategoryDto.name },
-      });
-
-      if (existingCategory) {
-        throw new ConflictException('Category with this name already exists');
-      }
-    }
-
-    Object.assign(category, updateCategoryDto);
-    return this.categoriesRepository.save(category);
-  }
-
-  async remove(id: number): Promise<void> {
-    const category = await this.findOne(id);
-    await this.categoriesRepository.remove(category);
+    return this.mapToResponseDto(category);
   }
 }

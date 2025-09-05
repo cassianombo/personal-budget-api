@@ -2,14 +2,16 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-} from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { User } from "./user.entity";
-import { Account } from "../accounts/account.entity";
-import { Transaction } from "../transactions/transaction.entity";
-import { CreateUserDto } from "./dto/create-user.dto";
-import { UpdateUserDto } from "./dto/update-user.dto";
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './user.entity';
+import { Account } from '../accounts/account.entity';
+import { Transaction } from '../transactions/transaction.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Injectable()
 export class UsersService {
@@ -19,34 +21,40 @@ export class UsersService {
     @InjectRepository(Account)
     private accountsRepository: Repository<Account>,
     @InjectRepository(Transaction)
-    private transactionsRepository: Repository<Transaction>
+    private transactionsRepository: Repository<Transaction>,
   ) {}
 
   async updateHashedRefreshToken(
     userId: number,
-    hashedRefreshToken: string | null
+    hashedRefreshToken: string | null,
   ) {
     await this.usersRepository.update(
       { id: userId },
-      { hashedRefreshToken: hashedRefreshToken ?? undefined }
+      { hashedRefreshToken: hashedRefreshToken ?? undefined },
     );
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUsername = await this.usersRepository.findOne({
-      where: { username: createUserDto.username },
-    });
+    const [existingUsername, existingEmail] = await Promise.all([
+      this.usersRepository.findOne({
+        where: { username: createUserDto.username },
+      }),
+      this.usersRepository.findOne({ where: { email: createUserDto.email } }),
+    ]);
 
     if (existingUsername) {
-      throw new ConflictException("Username already exists");
+      throw new ConflictException('Username already exists');
     }
 
-    const existingEmail = await this.usersRepository.findOne({
-      where: { email: createUserDto.email },
-    });
-
     if (existingEmail) {
-      throw new ConflictException("Email already exists");
+      throw new ConflictException('Email already exists');
+    }
+
+    if (
+      createUserDto.username !== createUserDto.email &&
+      createUserDto.username.length > 20
+    ) {
+      throw new ConflictException('Username must be less than 20 characters');
     }
 
     const user = this.usersRepository.create(createUserDto);
@@ -60,7 +68,7 @@ export class UsersService {
   async findOne(id: number) {
     const user = await this.usersRepository.findOne({
       where: { id },
-      select: ["id", "name", "username", "email", "hashedRefreshToken", "role"],
+      select: ['id', 'name', 'username', 'email', 'hashedRefreshToken', 'role'],
     });
 
     if (!user) {
@@ -82,7 +90,7 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string): Promise<User> {
+  async findByEmail(email: string): Promise<User | null> {
     if (!email) {
       throw new NotFoundException(`Email is required`);
     }
@@ -90,10 +98,6 @@ export class UsersService {
     const user = await this.usersRepository.findOne({
       where: { email },
     });
-
-    if (!user) {
-      throw new NotFoundException(`User with email ${email} not found`);
-    }
 
     return user;
   }
@@ -107,7 +111,7 @@ export class UsersService {
       });
 
       if (existingUser) {
-        throw new ConflictException("Username already exists");
+        throw new ConflictException('Username already exists');
       }
     }
 
@@ -117,12 +121,19 @@ export class UsersService {
       });
 
       if (existingEmail) {
-        throw new ConflictException("Email already exists");
+        throw new ConflictException('Email already exists');
       }
     }
 
     Object.assign(user, updateUserDto);
     return this.usersRepository.save(user);
+  }
+
+  async updateRole(id: number, updateRoleDto: UpdateRoleDto): Promise<User> {
+    await this.usersRepository.update(id, {
+      role: updateRoleDto.role,
+    });
+    return await this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {
@@ -139,19 +150,19 @@ export class UsersService {
       await this.usersRepository.manager.transaction(
         async (transactionalEntityManager) => {
           // First, delete all transactions related to this user
-          await transactionalEntityManager.delete("transactions", {
+          await transactionalEntityManager.delete('transactions', {
             userId: id,
           });
 
           // Then, delete all accounts related to this user
-          await transactionalEntityManager.delete("accounts", { userId: id });
+          await transactionalEntityManager.delete('accounts', { userId: id });
 
           // Finally, delete the user
-          await transactionalEntityManager.delete("users", { id });
-        }
+          await transactionalEntityManager.delete('users', { id });
+        },
       );
     } catch (error) {
-      console.error("Error deleting user:", error);
+      console.error('Error deleting user:', error);
       throw new Error(`Failed to delete user with ID ${id}: ${error.message}`);
     }
   }

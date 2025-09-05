@@ -20,9 +20,9 @@ export class AuthService {
     private refreshJwtConfiguration: ConfigType<typeof refreshJwtConfig>,
   ) {}
 
-  async validateUser(email: string, password: string) {
+  async validateUser(username: string, password: string) {
     try {
-      const user = await this.usersService.findByEmail(email);
+      const user = await this.usersService.findByUsername(username);
       if (user && (await bcrypt.compare(password, user.password))) {
         return { id: user.id };
       }
@@ -116,7 +116,6 @@ export class AuthService {
   async validateGoogleUser(googleUser: CreateUserDto) {
     const user = await this.usersService.findByEmail(googleUser.email);
     if (user) return user;
-
     return this.usersService.create(googleUser);
   }
 }

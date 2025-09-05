@@ -1,4 +1,11 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 import { AccountType } from '../account.entity';
 
@@ -23,8 +30,4 @@ export class CreateAccountDto {
   @IsOptional()
   @IsEnum(AccountType)
   type?: AccountType;
-
-  @IsNotEmpty()
-  @IsNumber()
-  userId: number;
 }
