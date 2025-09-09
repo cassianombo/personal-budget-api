@@ -76,7 +76,7 @@ describe('TransactionsService', () => {
       });
 
       expect(mockRepository.findAndCount).toHaveBeenCalledWith({
-        relations: ['user', 'category'],
+        relations: ['category'],
         order: { date: 'DESC' },
         skip: 0,
         take: 10,
@@ -100,42 +100,10 @@ describe('TransactionsService', () => {
       });
 
       expect(mockRepository.findAndCount).toHaveBeenCalledWith({
-        relations: ['user', 'category'],
+        relations: ['category'],
         order: { date: 'DESC' },
         skip: 5,
         take: 5,
-      });
-    });
-  });
-
-  describe('findByUserId with pagination', () => {
-    it('should return paginated results filtered by userId', async () => {
-      const userId = 123;
-      const paginationDto: PaginationDto = { page: 1, limit: 3 };
-      const mockTransactions = [
-        { id: 1, userId: 123, amount: 100, date: new Date() },
-        { id: 2, userId: 123, amount: 200, date: new Date() },
-        { id: 3, userId: 123, amount: 300, date: new Date() },
-      ];
-
-      mockRepository.findAndCount.mockResolvedValue([mockTransactions, 3]);
-
-      const result = await service.findByUserId(userId, paginationDto);
-
-      expect(result).toEqual({
-        data: mockTransactions,
-        total: 3,
-        page: 1,
-        limit: 3,
-        totalPages: 1,
-      });
-
-      expect(mockRepository.findAndCount).toHaveBeenCalledWith({
-        where: { userId },
-        relations: ['user', 'category'],
-        order: { date: 'DESC' },
-        skip: 0,
-        take: 3,
       });
     });
   });

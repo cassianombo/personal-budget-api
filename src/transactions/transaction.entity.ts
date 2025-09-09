@@ -1,17 +1,24 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
+import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
-import { User } from '../users/user.entity';
 
 export enum TransactionType {
   EXPENSE = 'expense',
   INCOME = 'income',
-  TRANSFER = 'transfer'
+  TRANSFER = 'transfer',
 }
 
 @Entity('transactions')
 export class Transaction {
-
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -27,9 +34,6 @@ export class Transaction {
   @Column({ nullable: true })
   accountToId: number;
 
-  @Column({ nullable: false })
-  userId: number;
-
   @Column({ type: 'date' })
   date: Date;
 
@@ -42,17 +46,17 @@ export class Transaction {
   @Column({ type: 'enum', enum: TransactionType })
   type: TransactionType;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ select: false })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ select: false })
   updatedAt: Date;
 
   @ManyToOne(() => Category)
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  @ManyToOne(() => Account)
+  @JoinColumn({ name: 'accountId' })
+  account: Account;
 }

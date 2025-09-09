@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 
 import { Account } from '../accounts/account.entity';
-import { Role } from 'src/enums/role.enum';
+import { Role } from '../enums/role.enum';
 import { Transaction } from '../transactions/transaction.entity';
 
 @Entity('users')
@@ -46,23 +46,15 @@ export class User {
   @OneToMany(() => Account, (account) => account.user, { cascade: true })
   accounts: Account[];
 
-  @OneToMany(() => Transaction, (transaction) => transaction.user, {
-    cascade: true,
-  })
-  transactions: Transaction[];
-
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
 
-    // Generate username if not provided
     if (!this.username) {
       if (this.email) {
-        this.username = this.email.split('@')[0];
-      } else if (this.name) {
-        this.username = this.name.toLowerCase().replace(/\s+/g, '_');
+        this.username = this.email;
       } else {
-        this.username = `user_${Date.now()}`;
+        throw new Error('Email is required');
       }
     }
   }

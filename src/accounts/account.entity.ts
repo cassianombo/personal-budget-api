@@ -1,4 +1,12 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 import { User } from '../users/user.entity';
 
@@ -6,19 +14,27 @@ export enum AccountType {
   DEBIT = 'debit',
   CREDIT = 'credit',
   SAVINGS = 'savings',
-  INVESTMENT = 'investment'
+  INVESTMENT = 'investment',
 }
 
 @Entity('accounts')
 export class Account {
-
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ length: 100, nullable: false })
   name: string;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   balance: number;
 
   @Column({ nullable: false })

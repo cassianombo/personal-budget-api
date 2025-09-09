@@ -1,13 +1,18 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum CategoryType {
   INCOME = 'income',
-  EXPENSE = 'expense'
+  EXPENSE = 'expense',
 }
 
 @Entity('categories')
 export class Category {
-
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -6,8 +6,8 @@ import {
   ParseEnumPipe,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
-import { CategoryType } from './category.entity';
 import { CategoryResponseDto } from './dto/category-response.dto';
+import { CategoryType } from './category.entity';
 
 @Controller('categories')
 export class CategoriesController {
