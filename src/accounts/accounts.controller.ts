@@ -31,6 +31,7 @@ export class AccountsController {
 
   @Get()
   findAll(@Req() req) {
+    console.log('Find all accounts request received for user:', req.user.id);
     return this.accountsService.findByUserId(req.user.id);
   }
 

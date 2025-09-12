@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 
 import { Account } from '../accounts/account.entity';
+import { DEFAULT_USER_SETTINGS } from '../config/default-settings';
 import { Role } from '../enums/role.enum';
 import { Transaction } from '../transactions/transaction.entity';
 
@@ -37,6 +38,9 @@ export class User {
   @Column({ nullable: true })
   hashedRefreshToken: string;
 
+  @Column({ type: 'json', nullable: false })
+  settings: Record<string, any>;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -56,6 +60,11 @@ export class User {
       } else {
         throw new Error('Email is required');
       }
+    }
+
+    // Ensure default settings are set
+    if (!this.settings) {
+      this.settings = { ...DEFAULT_USER_SETTINGS };
     }
   }
 }

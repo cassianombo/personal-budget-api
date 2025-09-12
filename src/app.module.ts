@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
 import { Module } from '@nestjs/common';
+import { SettingsModule } from './settings/settings.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
@@ -26,6 +27,7 @@ import { getEnvConfig } from './config/env.config';
     AccountsModule,
     CategoriesModule,
     TransactionsModule,
+    SettingsModule,
     AuthModule,
   ],
 

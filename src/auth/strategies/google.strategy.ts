@@ -27,6 +27,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
     profile: any,
     done: VerifyCallback,
   ) {
+    console.log('new access token', accessToken);
     const user = await this.authService.validateGoogleUser({
       email: profile.emails[0].value,
       name: profile.name.givenName,

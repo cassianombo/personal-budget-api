@@ -21,10 +21,16 @@ import { Public } from 'src/auth/decorators/public.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Public()
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  profile(@Req() req) {
+    console.log('Profile request received for user:', req.user.id);
+    return this.usersService.findOne(req.user.id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.findOne(id);
   }
 
   @Public()
@@ -33,29 +39,27 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  profile(@Req() req) {
-    return this.usersService.findOne(req.user.id);
+  @Public()
+  @Post()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
   }
 
   @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  update(@Req() req, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(req.user.id, updateUserDto);
+  }
+
   @Patch('profile/role')
   updateRole(@Req() req, @Body() updateRoleDto: UpdateRoleDto) {
     return this.usersService.updateRole(req.user.id, updateRoleDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
-    return this.usersService.update(id, updateUserDto);
+  @Public()
+  @Get('settings/options')
+  getSettingsOptions() {
+    return this.usersService.getSettingsOptions();
   }
 
   @Public()

@@ -31,9 +31,11 @@ export class TransactionsController {
   @Get()
   findAll(
     @Req() req: any,
-    @Query() filters: TransactionFiltersDto,
-    @Query() paginationDto?: PaginationDto,
+    @Query() query: TransactionFiltersDto & PaginationDto,
   ) {
+    const { page, limit, ...filters } = query;
+    const paginationDto = { page, limit };
+
     return this.transactionsService.findAllWithFilters(
       filters,
       paginationDto,

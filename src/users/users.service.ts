@@ -6,12 +6,19 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import {
+  DEFAULT_USER_SETTINGS,
+  SETTING_OPTIONS,
+} from '../config/default-settings';
 import { User } from './user.entity';
 import { Account } from '../accounts/account.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { UserSettingsDto } from './dto/user-settings.dto';
+import { UpdateUserSettingsDto } from './dto/update-user-settings.dto';
+import { UserSettingsResponseDto } from './dto/user-settings-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -35,20 +42,10 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const [existingUsername, existingEmail] = await Promise.all([
-      this.usersRepository.findOne({
-        where: { username: createUserDto.username },
-      }),
-      this.usersRepository.findOne({ where: { email: createUserDto.email } }),
-    ]);
-
-    if (existingUsername) {
-      throw new ConflictException('Username already exists');
-    }
-
-    if (existingEmail) {
-      throw new ConflictException('Email already exists');
-    }
+    await this.validateUniqueFields(
+      createUserDto.username,
+      createUserDto.email,
+    );
 
     if (
       createUserDto.username !== createUserDto.email &&
@@ -57,24 +54,28 @@ export class UsersService {
       throw new ConflictException('Username must be less than 20 characters');
     }
 
-    const user = this.usersRepository.create(createUserDto);
-    return this.usersRepository.save(user);
+    const user = this.usersRepository.create({
+      ...createUserDto,
+      settings: this.getDefaultSettings(),
+    });
+    const savedUser = await this.usersRepository.save(user);
+
+    return savedUser;
   }
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { id },
-      select: ['id', 'name', 'username', 'email', 'hashedRefreshToken', 'role'],
+      select: ['id', 'name', 'username', 'email', 'role', 'settings'],
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-
     return user;
   }
 
@@ -105,24 +106,13 @@ export class UsersService {
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
+    // Only validate if the fields are being changed
     if (updateUserDto.username && updateUserDto.username !== user.username) {
-      const existingUser = await this.usersRepository.findOne({
-        where: { username: updateUserDto.username },
-      });
-
-      if (existingUser) {
-        throw new ConflictException('Username already exists');
-      }
+      await this.validateUniqueFields(updateUserDto.username, undefined);
     }
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
-      const existingEmail = await this.usersRepository.findOne({
-        where: { email: updateUserDto.email },
-      });
-
-      if (existingEmail) {
-        throw new ConflictException('Email already exists');
-      }
+      await this.validateUniqueFields(undefined, updateUserDto.email);
     }
 
     Object.assign(user, updateUserDto);
@@ -134,6 +124,44 @@ export class UsersService {
       role: updateRoleDto.role,
     });
     return await this.findOne(id);
+  }
+
+  async updateSettings(
+    userId: number,
+    updateUserSettingsDto: UpdateUserSettingsDto,
+  ): Promise<UserSettingsResponseDto> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'settings'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    // Merge with existing settings, only updating provided fields
+    const currentSettings = user.settings || this.getDefaultSettings();
+    const updatedSettings = {
+      ...currentSettings,
+      ...(updateUserSettingsDto.language !== undefined && {
+        language: updateUserSettingsDto.language,
+      }),
+      ...(updateUserSettingsDto.currency !== undefined && {
+        currency: updateUserSettingsDto.currency,
+      }),
+      ...(updateUserSettingsDto.isBiometricLocked !== undefined && {
+        isBiometricLocked: updateUserSettingsDto.isBiometricLocked,
+      }),
+    };
+
+    await this.usersRepository.update(userId, {
+      settings: updatedSettings as Record<string, any>,
+    });
+
+    return {
+      userId: userId,
+      settings: this.normalizeSettings(updatedSettings),
+    };
   }
 
   async remove(id: number): Promise<void> {
@@ -162,8 +190,94 @@ export class UsersService {
         },
       );
     } catch (error) {
-      console.error('Error deleting user:', error);
-      throw new Error(`Failed to delete user with ID ${id}: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to delete user with ID ${id}: ${error.message}`,
+      );
+    }
+  }
+
+  // Settings methods
+  async getSettings(userId: number): Promise<UserSettingsResponseDto> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'settings'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return {
+      userId: user.id,
+      settings: this.normalizeSettings(user.settings),
+    };
+  }
+
+  async resetSettings(userId: number): Promise<UserSettingsResponseDto> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const defaultSettings = this.getDefaultSettings();
+    await this.usersRepository.update(userId, {
+      settings: defaultSettings as Record<string, any>,
+    });
+
+    return {
+      userId: userId,
+      settings: this.normalizeSettings(defaultSettings),
+    };
+  }
+
+  private getDefaultSettings(): UserSettingsDto {
+    return {
+      language: DEFAULT_USER_SETTINGS.language,
+      currency: DEFAULT_USER_SETTINGS.currency,
+      isBiometricLocked: DEFAULT_USER_SETTINGS.isBiometricLocked,
+    };
+  }
+
+  private normalizeSettings(settings: any): UserSettingsDto {
+    return {
+      language: String(settings?.language || DEFAULT_USER_SETTINGS.language),
+      currency: String(settings?.currency || DEFAULT_USER_SETTINGS.currency),
+      isBiometricLocked: Boolean(
+        settings?.isBiometricLocked || DEFAULT_USER_SETTINGS.isBiometricLocked,
+      ),
+    };
+  }
+
+  getSettingsOptions() {
+    return SETTING_OPTIONS;
+  }
+
+  private async validateUniqueFields(
+    username?: string,
+    email?: string,
+  ): Promise<void> {
+    const checks: Promise<User | null>[] = [];
+
+    if (username) {
+      checks.push(this.usersRepository.findOne({ where: { username } }));
+    }
+
+    if (email) {
+      checks.push(this.usersRepository.findOne({ where: { email } }));
+    }
+
+    const results = await Promise.all(checks);
+    const [existingUsername, existingEmail] = results;
+
+    if (existingUsername) {
+      throw new ConflictException('Username already exists');
+    }
+
+    if (existingEmail) {
+      throw new ConflictException('Email already exists');
     }
   }
 }
