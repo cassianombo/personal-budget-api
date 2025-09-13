@@ -1,6 +1,3 @@
 import { UserSettingsDto } from './user-settings.dto';
 
-export class UserSettingsResponseDto {
-  userId: number;
-  settings: UserSettingsDto;
-}
+export class UserSettingsResponseDto extends UserSettingsDto {}

@@ -6,10 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  DEFAULT_USER_SETTINGS,
-  SETTING_OPTIONS,
-} from '../config/default-settings';
+import { DEFAULT_USER_SETTINGS } from '../config/default-settings.js';
 import { User } from './user.entity';
 import { Account } from '../accounts/account.entity';
 import { Transaction } from '../transactions/transaction.entity';
@@ -25,10 +22,6 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    @InjectRepository(Account)
-    private accountsRepository: Repository<Account>,
-    @InjectRepository(Transaction)
-    private transactionsRepository: Repository<Transaction>,
   ) {}
 
   async updateHashedRefreshToken(
@@ -70,7 +63,7 @@ export class UsersService {
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { id },
-      select: ['id', 'name', 'username', 'email', 'role', 'settings'],
+      select: ['id', 'name', 'username', 'email', 'role'],
     });
 
     if (!user) {
@@ -158,10 +151,7 @@ export class UsersService {
       settings: updatedSettings as Record<string, any>,
     });
 
-    return {
-      userId: userId,
-      settings: this.normalizeSettings(updatedSettings),
-    };
+    return this.normalizeSettings(updatedSettings);
   }
 
   async remove(id: number): Promise<void> {
@@ -207,10 +197,7 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    return {
-      userId: user.id,
-      settings: this.normalizeSettings(user.settings),
-    };
+    return this.normalizeSettings(user.settings);
   }
 
   async resetSettings(userId: number): Promise<UserSettingsResponseDto> {
@@ -227,10 +214,7 @@ export class UsersService {
       settings: defaultSettings as Record<string, any>,
     });
 
-    return {
-      userId: userId,
-      settings: this.normalizeSettings(defaultSettings),
-    };
+    return this.normalizeSettings(defaultSettings);
   }
 
   private getDefaultSettings(): UserSettingsDto {
@@ -249,10 +233,6 @@ export class UsersService {
         settings?.isBiometricLocked || DEFAULT_USER_SETTINGS.isBiometricLocked,
       ),
     };
-  }
-
-  getSettingsOptions() {
-    return SETTING_OPTIONS;
   }
 
   private async validateUniqueFields(

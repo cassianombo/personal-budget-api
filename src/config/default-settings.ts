@@ -6,8 +6,17 @@ export const DEFAULT_USER_SETTINGS = {
 
 // Available options for each setting
 export const SETTING_OPTIONS = {
-  language: ['en', 'pt', 'es'] as const,
-  currency: ['USD', 'EUR', 'GBP', 'BRL'] as const,
+  language: [
+    { value: 'en', label: 'English' },
+    { value: 'pt', label: 'Português' },
+    { value: 'es', label: 'Español' },
+  ] as const,
+  currency: [
+    { value: 'USD', label: 'USD ($)' },
+    { value: 'EUR', label: 'EUR (€)' },
+    { value: 'GBP', label: 'GBP (£)' },
+    { value: 'BRL', label: 'BRL (R$)' },
+  ] as const,
   isBiometricLocked: [true, false] as const,
 };
 
@@ -19,12 +28,12 @@ export const SETTING_VALIDATION = {
 };
 
 // Type definitions for better TypeScript support
-export type Language = (typeof SETTING_OPTIONS.language)[number];
-export type Currency = (typeof SETTING_OPTIONS.currency)[number];
+export type LanguageOption = (typeof SETTING_OPTIONS.language)[number];
+export type CurrencyOption = (typeof SETTING_OPTIONS.currency)[number];
 export type BiometricLock = (typeof SETTING_OPTIONS.isBiometricLocked)[number];
 
 export interface UserSettings {
-  language: Language;
-  currency: Currency;
+  language: string;
+  currency: string;
   isBiometricLocked: BiometricLock;
 }
