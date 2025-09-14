@@ -95,9 +95,17 @@ export class TransactionsService {
       .createQueryBuilder('transaction')
       .leftJoin('transaction.category', 'category')
       .leftJoin('transaction.account', 'account')
-      .addSelect(['category.id', 'category.type'])
+      .leftJoin('transaction.accountTo', 'accountTo')
+      .addSelect([
+        'category.id',
+        'category.name',
+        'category.type',
+        'category.icon',
+      ])
       .where('transaction.id = :id', { id })
-      .andWhere('account.userId = :userId', { userId });
+      .andWhere('(account.userId = :userId OR accountTo.userId = :userId)', {
+        userId,
+      });
 
     const transaction = await queryBuilder.getOne();
     this.validateTransactionExists(transaction, id);
@@ -213,14 +221,25 @@ export class TransactionsService {
       .createQueryBuilder('transaction')
       .leftJoin('transaction.category', 'category')
       .leftJoin('transaction.account', 'account')
-      .addSelect(['category.id', 'category.type'])
-      .where('account.userId = :userId', { userId })
+      .leftJoin('transaction.accountTo', 'accountTo')
+      .addSelect([
+        'category.id',
+        'category.name',
+        'category.type',
+        'category.icon',
+      ])
+      .where('(account.userId = :userId OR accountTo.userId = :userId)', {
+        userId,
+      })
       .orderBy('transaction.date', 'DESC');
 
     if (filters.accountId) {
-      queryBuilder.andWhere('transaction.accountId = :accountId', {
-        accountId: filters.accountId,
-      });
+      queryBuilder.andWhere(
+        '(transaction.accountId = :accountId OR transaction.accountToId = :accountId)',
+        {
+          accountId: filters.accountId,
+        },
+      );
     }
 
     if (filters.categoryId) {

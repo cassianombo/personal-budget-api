@@ -59,4 +59,8 @@ export class Transaction {
   @ManyToOne(() => Account)
   @JoinColumn({ name: 'accountId' })
   account: Account;
+
+  @ManyToOne(() => Account)
+  @JoinColumn({ name: 'accountToId' })
+  accountTo: Account;
 }

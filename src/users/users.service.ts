@@ -6,16 +6,21 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DEFAULT_USER_SETTINGS } from '../config/default-settings.js';
+import {
+  DEFAULT_USER_SETTINGS,
+  SETTING_OPTIONS,
+} from '../config/default-settings.js';
 import { User } from './user.entity';
 import { Account } from '../accounts/account.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { UserSettingsDto } from './dto/user-settings.dto';
+import {
+  UserSettingsDto,
+  UserSettingsResponseDto,
+} from './dto/user-settings.dto';
 import { UpdateUserSettingsDto } from './dto/update-user-settings.dto';
-import { UserSettingsResponseDto } from './dto/user-settings-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -60,10 +65,21 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: number, includeRefreshToken = false): Promise<User> {
+    const selectFields: (keyof User)[] = [
+      'id',
+      'name',
+      'username',
+      'email',
+      'role',
+    ];
+    if (includeRefreshToken) {
+      selectFields.push('hashedRefreshToken');
+    }
+
     const user = await this.usersRepository.findOne({
       where: { id },
-      select: ['id', 'name', 'username', 'email', 'role'],
+      select: selectFields,
     });
 
     if (!user) {
@@ -225,13 +241,33 @@ export class UsersService {
     };
   }
 
-  private normalizeSettings(settings: any): UserSettingsDto {
+  private normalizeSettings(settings: any): UserSettingsResponseDto {
+    const languageValue = String(
+      settings?.language || DEFAULT_USER_SETTINGS.language,
+    );
+    const currencyValue = String(
+      settings?.currency || DEFAULT_USER_SETTINGS.currency,
+    );
+    const isBiometricLocked = Boolean(
+      settings?.isBiometricLocked || DEFAULT_USER_SETTINGS.isBiometricLocked,
+    );
+
+    // Find the full language option object
+    const languageOption =
+      SETTING_OPTIONS.language.find(
+        (option) => option.value === languageValue,
+      ) || SETTING_OPTIONS.language[0];
+
+    // Find the full currency option object
+    const currencyOption =
+      SETTING_OPTIONS.currency.find(
+        (option) => option.value === currencyValue,
+      ) || SETTING_OPTIONS.currency[0];
+
     return {
-      language: String(settings?.language || DEFAULT_USER_SETTINGS.language),
-      currency: String(settings?.currency || DEFAULT_USER_SETTINGS.currency),
-      isBiometricLocked: Boolean(
-        settings?.isBiometricLocked || DEFAULT_USER_SETTINGS.isBiometricLocked,
-      ),
+      language: languageOption,
+      currency: currencyOption,
+      isBiometricLocked,
     };
   }
 

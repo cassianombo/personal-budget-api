@@ -16,6 +16,7 @@ export class AccountsService {
     'type',
     'createdAt',
     'updatedAt',
+    'currency',
   ] as (keyof Account)[];
 
   constructor(

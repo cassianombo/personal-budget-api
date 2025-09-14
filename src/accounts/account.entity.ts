@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { Currency } from '../enums/currency.enum';
 import { User } from '../users/user.entity';
 
 export enum AccountType {
@@ -45,6 +46,9 @@ export class Account {
 
   @Column({ type: 'enum', enum: AccountType, default: AccountType.DEBIT })
   type: AccountType;
+
+  @Column({ type: 'enum', enum: Currency, default: Currency.USD })
+  currency: Currency;
 
   @Column({ nullable: false })
   userId: number;

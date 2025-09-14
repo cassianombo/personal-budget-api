@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 
 import { AccountType } from '../account.entity';
+import { Currency } from '../../enums/currency.enum';
 
 export class CreateAccountDto {
   @IsNotEmpty()
@@ -30,4 +31,8 @@ export class CreateAccountDto {
   @IsOptional()
   @IsEnum(AccountType)
   type?: AccountType;
+
+  @IsOptional()
+  @IsEnum(Currency)
+  currency?: Currency;
 }

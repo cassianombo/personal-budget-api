@@ -1,6 +1,8 @@
+import { Currency } from '../enums/currency.enum';
+
 export const DEFAULT_USER_SETTINGS = {
   language: 'en',
-  currency: 'USD',
+  currency: Currency.USD,
   isBiometricLocked: false,
 };
 
@@ -12,10 +14,9 @@ export const SETTING_OPTIONS = {
     { value: 'es', label: 'Español' },
   ] as const,
   currency: [
-    { value: 'USD', label: 'USD ($)' },
-    { value: 'EUR', label: 'EUR (€)' },
-    { value: 'GBP', label: 'GBP (£)' },
-    { value: 'BRL', label: 'BRL (R$)' },
+    { value: Currency.USD, label: 'USD ($)', symbol: '$' },
+    { value: Currency.EUR, label: 'EUR (€)', symbol: '€' },
+    { value: Currency.GBP, label: 'GBP (£)', symbol: '£' },
   ] as const,
   isBiometricLocked: [true, false] as const,
 };
@@ -23,7 +24,7 @@ export const SETTING_OPTIONS = {
 // Validation rules for settings
 export const SETTING_VALIDATION = {
   language: ['en', 'pt', 'es'],
-  currency: ['USD', 'EUR', 'GBP', 'BRL'],
+  currency: Object.values(Currency),
   isBiometricLocked: [true, false],
 };
 
